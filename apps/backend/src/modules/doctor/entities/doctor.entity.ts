@@ -12,7 +12,7 @@ export class Doctor {
   @Column()
   department!: string;
 
-  @Column({ type: 'decimal', scale: 2, precision: 10 })
+  @Column({ type: 'varchar', length: 10 })
   phoneNumber!: string;
 
   @OneToMany(() => Patient, (patient) => patient.assignedDoctor, {
