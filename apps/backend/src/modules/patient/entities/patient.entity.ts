@@ -1,10 +1,12 @@
 import { Bed } from 'src/modules/bed/entities/bed.entity';
 import { Doctor } from 'src/modules/doctor/entities/doctor.entity';
+import { VitalReading } from 'src/modules/vital-reading/entities/vitalReading.entity';
 import {
   Column,
   CreateDateColumn,
   Entity,
   ManyToOne,
+  OneToMany,
   OneToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
@@ -41,7 +43,12 @@ export class Patient {
   bed?: Bed;
 
   @ManyToOne(() => Doctor, { nullable: true })
-  assignedDoctor?: Doctor;
+  assignedDoctor!: Doctor | null;
+
+  @OneToMany(() => VitalReading, (vitalReading) => vitalReading.patient, {
+    nullable: true,
+  })
+  vitalReadings!: VitalReading[] | null;
 
   @CreateDateColumn()
   createdAt!: Date;
