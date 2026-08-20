@@ -4,6 +4,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { Patient } from './modules/patient/entities/patient.entity';
 import { Bed } from './modules/bed/entities/bed.entity';
 import { Doctor } from './modules/doctor/entities/doctor.entity';
+import { VitalReading } from './modules/vital-reading/entities/vitalReading.entity';
 
 @Module({
   imports: [
@@ -18,7 +19,7 @@ import { Doctor } from './modules/doctor/entities/doctor.entity';
       username: process.env.DB_USER || 'postgres',
       password: process.env.DB_PASSWORD || 'postgres',
       database: process.env.DB_NAME || 'nurse-voice',
-      entities: [Patient, Bed, Doctor],
+      entities: [Patient, Bed, Doctor, VitalReading],
       autoLoadEntities: true,
     }),
   ],
