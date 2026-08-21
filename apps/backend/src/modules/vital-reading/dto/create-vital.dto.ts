@@ -1,9 +1,9 @@
-import { IsUUID, IsInt, IsNumber, IsNotEmpty, Min, Max } from 'class-validator';
+import { IsInt, IsNumber, IsNotEmpty, Min, Max, Length } from 'class-validator';
 
 export class CreateVitalReadingDto {
-  @IsUUID()
   @IsNotEmpty()
-  patientId!: string;
+  @Length(9)
+  patientCode!: string;
 
   @IsInt()
   @Min(0)

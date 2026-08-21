@@ -19,7 +19,7 @@ export class VitalReadingService {
   ) {}
 
   async logVitalReading(dto: CreateVitalReadingDto): Promise<VitalReading> {
-    const patient = await this.patientService.findPatientById(dto.patientId);
+    const patient = await this.patientService.findByCode(dto.patientCode);
     if (!patient) {
       throw new NotFoundException('Patient not found');
     }
@@ -40,7 +40,7 @@ export class VitalReadingService {
     }
 
     // Handle speech-to-text decimal errors
-    dto.temperature = parseFloat(dto.temperature.toFixed(2)); // Ensuring two decimal places
+    dto.temperature = parseFloat(dto.temperature.toFixed(2));
 
     // Create VitalReading entity
     const vitalReading = this.vitalReadingRepository.create({
