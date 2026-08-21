@@ -21,3 +21,11 @@ export class GetAvailableBedsDto {
   @IsOptional()
   ward?: string;
 }
+
+export class FindWardBedDto {
+  @IsString()
+  bedNumber!: string;
+
+  @IsString()
+  ward!: string;
+}

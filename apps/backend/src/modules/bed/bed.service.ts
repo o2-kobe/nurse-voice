@@ -6,7 +6,12 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Bed, BedStatus } from './entities/bed.entity';
-import { CreateBedDto, GetAvailableBedsDto, GetBedDto } from './dto/bed.dto';
+import {
+  CreateBedDto,
+  FindWardBedDto,
+  GetAvailableBedsDto,
+  GetBedDto,
+} from './dto/bed.dto';
 
 @Injectable()
 export class BedService {
@@ -66,5 +71,23 @@ export class BedService {
     return await this.bedRepository.find({
       where: { status: BedStatus.AVAILABLE, ward: dto.ward },
     });
+  }
+
+  async findBedInWard(dto: FindWardBedDto): Promise<Bed> {
+    const normalizedWard = dto.ward.trim();
+    const normalizedBed = dto.bedNumber.trim();
+
+    const bed = await this.bedRepository.findOne({
+      where: { ward: normalizedWard, bedNumber: normalizedBed },
+      relations: { currentPatient: true },
+    });
+
+    if (!bed) {
+      throw new NotFoundException(
+        `Bed "${normalizedBed}" in "${normalizedWard}" does not exist in the hospital setup.`,
+      );
+    }
+
+    return bed;
   }
 }
