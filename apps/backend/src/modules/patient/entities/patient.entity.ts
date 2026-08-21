@@ -1,5 +1,6 @@
 import { Bed } from 'src/modules/bed/entities/bed.entity';
 import { Doctor } from 'src/modules/doctor/entities/doctor.entity';
+import { Medication } from 'src/modules/medication/entities/medication.entity';
 import { VitalReading } from 'src/modules/vital-reading/entities/vitalReading.entity';
 import {
   Column,
@@ -49,6 +50,11 @@ export class Patient {
     nullable: true,
   })
   vitalReadings!: VitalReading[] | null;
+
+  @OneToMany(() => Medication, (medication) => medication.patient, {
+    nullable: true,
+  })
+  medications!: Medication[] | null;
 
   @CreateDateColumn()
   createdAt!: Date;
