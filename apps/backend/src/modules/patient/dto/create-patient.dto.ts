@@ -4,7 +4,7 @@ import {
   IsNumber,
   IsOptional,
   IsString,
-  IsUUID,
+  Length,
 } from 'class-validator';
 import { PatientGender } from '../entities/patient.entity';
 
@@ -32,6 +32,6 @@ export class CreatePatientDto {
   bedNumber!: string;
 
   @IsOptional()
-  @IsUUID()
-  assignedDoctorId?: string;
+  @Length(9)
+  assignedDoctorCode?: string;
 }

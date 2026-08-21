@@ -1,4 +1,5 @@
 import { Bed } from 'src/modules/bed/entities/bed.entity';
+import { DoctorFlag } from 'src/modules/doctor-flag/entities/doctor-flag.entity';
 import { Doctor } from 'src/modules/doctor/entities/doctor.entity';
 import { Medication } from 'src/modules/medication/entities/medication.entity';
 import { VitalReading } from 'src/modules/vital-reading/entities/vitalReading.entity';
@@ -6,6 +7,7 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  Index,
   ManyToOne,
   OneToMany,
   OneToOne,
@@ -23,6 +25,10 @@ export enum PatientGender {
 export class Patient {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
+
+  @Index({ unique: true })
+  @Column({ unique: true, length: 9 })
+  patientCode!: string;
 
   @Column()
   firstName!: string;
@@ -55,6 +61,9 @@ export class Patient {
     nullable: true,
   })
   medications!: Medication[] | null;
+
+  @OneToMany(() => DoctorFlag, (flag) => flag.patient, { nullable: true })
+  doctorFlags!: DoctorFlag[] | null;
 
   @CreateDateColumn()
   createdAt!: Date;

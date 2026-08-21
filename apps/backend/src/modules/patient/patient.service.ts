@@ -11,50 +11,48 @@ import { Patient } from './entities/patient.entity';
 import { Bed, BedStatus } from '../bed/entities/bed.entity';
 import { Doctor } from '../doctor/entities/doctor.entity';
 import { DoctorService } from '../doctor/doctor.service';
+import {
+  CodeGeneratorService,
+  CodePrefix,
+} from '../code-generator/code-generator.service';
+import { BedService } from '../bed/bed.service';
 
 @Injectable()
 export class PatientService {
   constructor(
     @InjectRepository(Patient)
     private readonly patientRepo: Repository<Patient>,
-    @InjectRepository(Bed) private readonly bedRepo: Repository<Bed>,
-    @InjectRepository(Doctor) private readonly doctorRepo: Repository<Doctor>,
+    private readonly bedService: BedService,
     private readonly dataSource: DataSource,
-
     private readonly doctorService: DoctorService,
+    private readonly codeGeneratorService: CodeGeneratorService,
   ) {}
 
   async createPatient(dto: CreatePatientDto): Promise<Patient> {
     // Verify assigned doctor exists
     let assignedDoctor: Doctor | null = null;
-    if (dto.assignedDoctorId) {
-      assignedDoctor = await this.doctorRepo.findOneBy({
-        id: dto.assignedDoctorId,
-      });
+    if (dto.assignedDoctorCode) {
+      assignedDoctor = await this.doctorService.findByCode(
+        dto.assignedDoctorCode,
+      );
+
       if (!assignedDoctor) {
         throw new NotFoundException(
-          `Doctor with ID "${dto.assignedDoctorId}" not found.`,
+          `Doctor with code "${dto.assignedDoctorCode}" not found.`,
         );
       }
     }
 
-    // Normalize inputs (strips extra spaces, case-insensitive query)
+    //  Normalize inputs
     const normalizedWard = dto.ward.trim();
     const normalizedBed = dto.bedNumber.trim();
 
-    // Check bed existence
-    const bed = await this.bedRepo.findOne({
-      where: { ward: normalizedWard, bedNumber: normalizedBed },
-      relations: { currentPatient: true },
+    // Verify bed existence and status
+    const bed = await this.bedService.findBedInWard({
+      ward: normalizedWard,
+      bedNumber: normalizedBed,
     });
 
-    if (!bed) {
-      throw new NotFoundException(
-        `Bed "${normalizedBed}" in "${normalizedWard}" does not exist in the hospital setup.`,
-      );
-    }
-
-    // Check Bed status
     if (bed.status === BedStatus.OCCUPIED || bed.currentPatient) {
       throw new ConflictException(
         `${normalizedBed} in ${normalizedWard} is already occupied.`,
@@ -67,13 +65,22 @@ export class PatientService {
       );
     }
 
-    //  Create Patient & Lock Bed atomically
+    // Create Patient & Lock Bed atomically inside a Transaction
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
 
     try {
+      // Generate guaranteed unique 6-character code using transactional manager
+      const patientCode = await this.codeGeneratorService.generateUniqueCode({
+        entity: Patient,
+        columnName: 'patientCode',
+        prefix: CodePrefix.PATIENT,
+        manager: queryRunner.manager,
+      });
+
       const patient = this.patientRepo.create({
+        patientCode,
         firstName: dto.firstName,
         lastName: dto.lastName,
         age: dto.age,
@@ -98,6 +105,22 @@ export class PatientService {
     }
   }
 
+  async findByCode(patientCode: string): Promise<Patient> {
+    const normalizedCode = patientCode.trim().toUpperCase();
+    const patient = await this.patientRepo.findOne({
+      where: { patientCode: normalizedCode },
+      relations: { bed: true, assignedDoctor: true },
+    });
+
+    if (!patient) {
+      throw new NotFoundException(
+        `Patient with code "${normalizedCode}" not found.`,
+      );
+    }
+
+    return patient;
+  }
+
   async findPatientByBedBumber(bedNumber: string) {
     const normalizedBedNumber = bedNumber.trim();
 
@@ -117,20 +140,10 @@ export class PatientService {
     return patient;
   }
 
-  async findPatientById(id: string) {
-    const patient = await this.patientRepo.findOneBy({ id });
-
-    if (!patient) {
-      throw new NotFoundException('Patient does not exist');
-    }
-
-    return patient;
-  }
-
-  async assignDoctorToPatient(patientId: string, doctorId: string) {
+  async assignDoctorToPatient(patientCode: string, doctorCode: string) {
     const [patient, doctor] = await Promise.all([
-      this.findPatientById(patientId),
-      this.doctorService.findDoctorById(doctorId),
+      this.findByCode(patientCode),
+      this.doctorService.findByCode(doctorCode),
     ]);
 
     patient.assignedDoctor = doctor;
