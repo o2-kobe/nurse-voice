@@ -18,11 +18,8 @@ export class MedicationService {
     private readonly patientService: PatientService,
   ) {}
 
-  async logMedication(
-    patientId: string,
-    dto: CreateMedicationDto,
-  ): Promise<Medication> {
-    const patient = await this.patientService.findPatientById(patientId);
+  async logMedication(dto: CreateMedicationDto): Promise<Medication> {
+    const patient = await this.patientService.findByCode(dto.patientCode);
     if (!patient) {
       throw new NotFoundException('Patient not found');
     }
