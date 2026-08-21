@@ -1,10 +1,22 @@
+import { DoctorFlag } from 'src/modules/doctor-flag/entities/doctor-flag.entity';
 import { Patient } from 'src/modules/patient/entities/patient.entity';
-import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
+import {
+  Column,
+  CreateDateColumn,
+  Entity,
+  Index,
+  OneToMany,
+  PrimaryGeneratedColumn,
+} from 'typeorm';
 
 @Entity()
 export class Doctor {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
+
+  @Index({ unique: true })
+  @Column({ unique: true, length: 9 })
+  doctorCode!: string;
 
   @Column()
   name!: string;
@@ -19,4 +31,10 @@ export class Doctor {
     nullable: true,
   })
   assignedPatients!: Patient[] | null;
+
+  @OneToMany(() => DoctorFlag, (flags) => flags.doctor, { nullable: true })
+  doctorFlags!: DoctorFlag[] | null;
+
+  @CreateDateColumn()
+  createdAt!: Date;
 }
