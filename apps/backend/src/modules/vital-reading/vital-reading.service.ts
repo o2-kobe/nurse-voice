@@ -18,11 +18,8 @@ export class VitalReadingService {
     private readonly patientService: PatientService,
   ) {}
 
-  async logVitalReading(
-    patientId: string,
-    dto: CreateVitalReadingDto,
-  ): Promise<VitalReading> {
-    const patient = await this.patientService.findPatientById(patientId);
+  async logVitalReading(dto: CreateVitalReadingDto): Promise<VitalReading> {
+    const patient = await this.patientService.findPatientById(dto.patientId);
     if (!patient) {
       throw new NotFoundException('Patient not found');
     }
