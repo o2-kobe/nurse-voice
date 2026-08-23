@@ -27,9 +27,10 @@ import { Medication } from './modules/medication/entities/medication.entity';
       port: parseInt(process.env.DB_PORT || '5432', 10),
       username: process.env.DB_USER || 'postgres',
       password: process.env.DB_PASSWORD || 'postgres',
-      database: process.env.DB_NAME || 'nurse-voice',
+      database: process.env.DB_NAME || 'nurse_voice',
       entities: [Patient, Bed, Doctor, VitalReading, DoctorFlag, Medication],
       autoLoadEntities: true,
+      synchronize: true, // DEV ONLY — auto-creates tables from entities
     }),
 
     PatientModule,
