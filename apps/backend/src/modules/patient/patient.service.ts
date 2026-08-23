@@ -31,6 +31,8 @@ export class PatientService {
   async createPatient(dto: CreatePatientDto): Promise<Patient> {
     // Verify assigned doctor exists
     let assignedDoctor: Doctor | null = null;
+    let bed: Bed | null = null;
+
     if (dto.assignedDoctorCode) {
       assignedDoctor = await this.doctorService.findByCode(
         dto.assignedDoctorCode,
@@ -45,24 +47,27 @@ export class PatientService {
 
     //  Normalize inputs
     const normalizedWard = dto.ward.trim();
-    const normalizedBed = dto.bedNumber.trim();
 
-    // Verify bed existence and status
-    const bed = await this.bedService.findBedInWard({
-      ward: normalizedWard,
-      bedNumber: normalizedBed,
-    });
+    if (dto.bedNumber) {
+      const normalizedBed = dto.bedNumber.trim();
 
-    if (bed.status === BedStatus.OCCUPIED || bed.currentPatient) {
-      throw new ConflictException(
-        `${normalizedBed} in ${normalizedWard} is already occupied.`,
-      );
-    }
+      // Verify bed existence and status
+      bed = await this.bedService.findBedInWard({
+        ward: normalizedWard,
+        bedNumber: normalizedBed,
+      });
 
-    if (bed.status !== BedStatus.AVAILABLE) {
-      throw new BadRequestException(
-        `${normalizedBed} in ${normalizedWard} is currently marked as "${bed.status}" and cannot accept patients.`,
-      );
+      if (bed.status === BedStatus.OCCUPIED || bed.currentPatient) {
+        throw new ConflictException(
+          `${normalizedBed} in ${normalizedWard} is already occupied.`,
+        );
+      }
+
+      if (bed.status !== BedStatus.AVAILABLE) {
+        throw new BadRequestException(
+          `${normalizedBed} in ${normalizedWard} is currently marked as "${bed.status}" and cannot accept patients.`,
+        );
+      }
     }
 
     // Create Patient & Lock Bed atomically inside a Transaction
@@ -79,21 +84,26 @@ export class PatientService {
         manager: queryRunner.manager,
       });
 
+      // Convert age to an approximate dateOfBirth
+      const dateOfBirth = new Date();
+      dateOfBirth.setFullYear(dateOfBirth.getFullYear() - dto.age);
+
       const patient = this.patientRepo.create({
         patientCode,
         firstName: dto.firstName,
         lastName: dto.lastName,
-        age: dto.age,
+        dateOfBirth,
         gender: dto.gender,
         assignedDoctor: assignedDoctor ?? undefined,
-        bed: bed,
+        bed: dto.bedNumber ? bed : null,
       });
 
       const savedPatient = await queryRunner.manager.save(Patient, patient);
-
-      bed.status = BedStatus.OCCUPIED;
-      bed.currentPatient = savedPatient;
-      await queryRunner.manager.save(Bed, bed);
+      if (bed) {
+        bed.status = BedStatus.OCCUPIED;
+        bed.currentPatient = savedPatient;
+        await queryRunner.manager.save(Bed, bed);
+      }
 
       await queryRunner.commitTransaction();
       return savedPatient;

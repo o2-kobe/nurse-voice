@@ -21,7 +21,7 @@ export enum PatientGender {
   UNKNOWN = 'U',
 }
 
-@Entity('patients')
+@Entity()
 export class Patient {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
@@ -46,8 +46,8 @@ export class Patient {
   })
   gender!: PatientGender;
 
-  @OneToOne(() => Bed, (bed) => bed.currentPatient)
-  bed?: Bed;
+  @OneToOne(() => Bed, (bed) => bed.currentPatient, { nullable: true })
+  bed!: Bed | null;
 
   @ManyToOne(() => Doctor, { nullable: true })
   assignedDoctor!: Doctor | null;

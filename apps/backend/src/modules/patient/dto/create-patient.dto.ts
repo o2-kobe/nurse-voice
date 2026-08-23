@@ -27,6 +27,7 @@ export class CreatePatientDto {
   @IsNotEmpty()
   ward!: string;
 
+  @IsOptional()
   @IsString()
   @IsNotEmpty()
   bedNumber!: string;
