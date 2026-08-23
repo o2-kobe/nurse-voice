@@ -9,7 +9,7 @@ export class NurseAgentService {
 
   processNurseRequest(messages: ModelMessage[]) {
     const result = streamText({
-      model: google('gemini-1.5-flash'),
+      model: google('gemini-3.6-flash'),
       system: `You are an AI Nurse Assistant. Be concise, direct, and clinical. Always confirm tool executions clearly with patient codes.`,
       messages,
       tools: this.toolsService.getTools(),

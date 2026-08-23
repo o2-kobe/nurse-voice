@@ -28,7 +28,20 @@ export class NurseAgentToolsService {
           try {
             const patient = await this.patientService.findByCode(patientCode);
 
-            return { success: true, patient };
+            return {
+              success: true,
+              patient: {
+                id: patient.id,
+                patientCode: patient.patientCode,
+                firstName: patient.firstName,
+                lastName: patient.lastName,
+                dateOfBirth: patient.dateOfBirth
+                  ? new Date(patient.dateOfBirth).toISOString()
+                  : null,
+                gender: patient.gender,
+                age: patient.age,
+              },
+            };
           } catch (error) {
             const errorMessage =
               error instanceof Error
