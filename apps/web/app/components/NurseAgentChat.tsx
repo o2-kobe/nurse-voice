@@ -175,10 +175,11 @@ export default function NurseAgentChat() {
               setMessages((prev) => {
                 const updated = [...prev];
                 const lastIndex = updated.length - 1;
-                if (lastIndex >= 0 && updated[lastIndex].role === "assistant") {
+                const lastMessage = updated[lastIndex];
+                if (lastMessage?.role === "assistant") {
                   updated[lastIndex] = {
-                    ...updated[lastIndex],
-                    content: updated[lastIndex].content + deltaText,
+                    ...lastMessage,
+                    content: lastMessage.content + deltaText,
                   };
                 }
                 return updated;
