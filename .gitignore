@@ -33,6 +33,10 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
+# Local documentation & guides (git-ignored)
+SPEECH_RECOGNITION_GUIDE.md
+
 # Misc
 .DS_Store
 *.pem
+
