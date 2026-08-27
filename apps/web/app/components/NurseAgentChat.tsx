@@ -1,99 +1,57 @@
 "use client";
-import React, { useState } from "react";
-import { useChat } from "@ai-sdk/react";
-import { DefaultChatTransport } from "ai";
-import { useSpeechRecognition } from "../hooks/useSpeechRecognition";
+import React from "react";
+import { useNurseAgentChat } from "../hooks/useNurseAgentChat";
 import LoadingBubbles from "./LoadingBubbles";
 
 export default function NurseAgentChat() {
-  const [input, setInput] = useState("");
-
-  const { messages, sendMessage, status, error } = useChat({
-    transport: new DefaultChatTransport({
-      api: "http://localhost:3001/nurse-agent/chat",
-    }),
-  });
-
-  const { isRecording, toggleRecording } = useSpeechRecognition({
-    onTranscript: setInput,
-  });
-
-  const onSend = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!input.trim() || status === "streaming" || status === "submitted")
-      return;
-
-    sendMessage({ text: input });
-    setInput("");
-  };
-
-  // Helper to extract text parts from a UIMessage
-  const getMessageTextContent = (msg: (typeof messages)[0]): string => {
-    return msg.parts
-      .filter(
-        (part): part is { type: "text"; text: string } => part.type === "text",
-      )
-      .map((part) => part.text)
-      .join("");
-  };
-
-  // Derive agent status (e.g. executing tool) from the last assistant message
-  const lastMessage = messages[messages.length - 1];
-  let activeToolName: string | null = null;
-  if (lastMessage?.role === "assistant") {
-    for (const part of lastMessage.parts) {
-      const partWithState = part as {
-        state?: string;
-        toolName?: string;
-      };
-      if (part.type === "dynamic-tool") {
-        if (
-          partWithState.state !== "output-available" &&
-          partWithState.state !== "output-error" &&
-          partWithState.state !== "output-denied"
-        ) {
-          activeToolName = partWithState.toolName ?? null;
-          break;
-        }
-      }
-      if (part.type.startsWith("tool-")) {
-        if (
-          partWithState.state !== "output-available" &&
-          partWithState.state !== "output-error" &&
-          partWithState.state !== "output-denied"
-        ) {
-          activeToolName = part.type.replace("tool-", "");
-          break;
-        }
-      }
-    }
-  }
-
-  const agentStatus =
-    (status === "streaming" || status === "submitted") && activeToolName
-      ? `Executing tool: ${activeToolName}...`
-      : null;
-
-  // Filter messages to show only non-empty user and assistant messages
-  const visibleMessages = messages.filter((msg) => {
-    const hasText = getMessageTextContent(msg).trim() !== "";
-    return (
-      (msg.role === "user" && hasText) || (msg.role === "assistant" && hasText)
-    );
-  });
-
-  const isStreaming = status === "streaming" || status === "submitted";
+  const {
+    input,
+    setInput,
+    onSend,
+    visibleMessages,
+    error,
+    isStreaming,
+    agentStatus,
+    isRecording,
+    toggleRecording,
+    isSpeaking,
+    ttsSupported,
+    autoRead,
+    toggleAutoRead,
+  } = useNurseAgentChat();
 
   return (
     <div className="flex flex-col h-screen max-w-2xl mx-auto p-4 border rounded-lg shadow-sm">
       {/* Header & Active Tool Status Banner */}
       <header className="p-4 border-b flex justify-between items-center">
         <h1 className="text-xl font-bold">AI Nurse Assistant 🩺</h1>
-        {agentStatus && (
-          <span className="text-sm bg-blue-100 text-blue-800 px-3 py-1 rounded-full animate-pulse">
-            🛠️ {agentStatus}
-          </span>
-        )}
+        <div className="flex items-center gap-2">
+          {agentStatus && (
+            <span className="text-sm bg-blue-100 text-blue-800 px-3 py-1 rounded-full animate-pulse">
+              🛠️ {agentStatus}
+            </span>
+          )}
+          {isSpeaking && (
+            <span className="text-sm bg-green-100 text-green-800 px-3 py-1 rounded-full animate-pulse">
+              🔊 Speaking…
+            </span>
+          )}
+          {/* Auto-read / Mute toggle */}
+          {ttsSupported && (
+            <button
+              type="button"
+              onClick={toggleAutoRead}
+              title={autoRead ? "Mute auto-read" : "Enable auto-read"}
+              className={`p-2 rounded-full text-lg transition-all ${
+                autoRead
+                  ? "bg-green-600 text-white hover:bg-green-700"
+                  : "bg-gray-300 text-gray-600 hover:bg-gray-400"
+              }`}
+            >
+              {autoRead ? "🔊" : "🔇"}
+            </button>
+          )}
+        </div>
       </header>
 
       {/* Message History Feed */}
@@ -107,10 +65,10 @@ export default function NurseAgentChat() {
                 : "mr-auto bg-gray-100 text-gray-800"
             }`}
           >
-            {getMessageTextContent(msg)}
+            {msg.text}
           </div>
         ))}
-        {isStreaming && !activeToolName && (
+        {isStreaming && !agentStatus && (
           <div>
             <LoadingBubbles />
             <p className="text-gray-400 text-sm italic animate-pulse">

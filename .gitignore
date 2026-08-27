@@ -35,6 +35,8 @@ yarn-error.log*
 
 # Local documentation & guides (git-ignored)
 SPEECH_RECOGNITION_GUIDE.md
+TTS_GUIDE.md
+NURSE_AGENT_HOOK_GUIDE.md
 
 # Misc
 .DS_Store
