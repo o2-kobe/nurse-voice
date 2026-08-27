@@ -1,25 +1,88 @@
 "use client";
-import React from "react";
-import { useNurseAgentChat } from "../hooks/useNurseAgentChat";
+import React, { useState } from "react";
+import { useChat } from "@ai-sdk/react";
+import { DefaultChatTransport } from "ai";
 import { useSpeechRecognition } from "../hooks/useSpeechRecognition";
+import LoadingBubbles from "./LoadingBubbles";
 
 export default function NurseAgentChat() {
-  const {
-    prompt,
-    setPrompt,
-    messages,
-    isStreaming,
-    agentStatus,
-    handleSendText,
-  } = useNurseAgentChat();
+  const [input, setInput] = useState("");
 
-  const { isRecording, toggleRecording, stopRecording } = useSpeechRecognition({
-    onTranscript: setPrompt,
+  const { messages, sendMessage, status, error } = useChat({
+    transport: new DefaultChatTransport({
+      api: "http://localhost:3001/nurse-agent/chat",
+    }),
   });
 
-  const onSend = () => {
-    handleSendText(stopRecording);
+  const { isRecording, toggleRecording } = useSpeechRecognition({
+    onTranscript: setInput,
+  });
+
+  const onSend = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!input.trim() || status === "streaming" || status === "submitted")
+      return;
+
+    sendMessage({ text: input });
+    setInput("");
   };
+
+  // Helper to extract text parts from a UIMessage
+  const getMessageTextContent = (msg: (typeof messages)[0]): string => {
+    return msg.parts
+      .filter(
+        (part): part is { type: "text"; text: string } => part.type === "text",
+      )
+      .map((part) => part.text)
+      .join("");
+  };
+
+  // Derive agent status (e.g. executing tool) from the last assistant message
+  const lastMessage = messages[messages.length - 1];
+  let activeToolName: string | null = null;
+  if (lastMessage?.role === "assistant") {
+    for (const part of lastMessage.parts) {
+      const partWithState = part as {
+        state?: string;
+        toolName?: string;
+      };
+      if (part.type === "dynamic-tool") {
+        if (
+          partWithState.state !== "output-available" &&
+          partWithState.state !== "output-error" &&
+          partWithState.state !== "output-denied"
+        ) {
+          activeToolName = partWithState.toolName ?? null;
+          break;
+        }
+      }
+      if (part.type.startsWith("tool-")) {
+        if (
+          partWithState.state !== "output-available" &&
+          partWithState.state !== "output-error" &&
+          partWithState.state !== "output-denied"
+        ) {
+          activeToolName = part.type.replace("tool-", "");
+          break;
+        }
+      }
+    }
+  }
+
+  const agentStatus =
+    (status === "streaming" || status === "submitted") && activeToolName
+      ? `Executing tool: ${activeToolName}...`
+      : null;
+
+  // Filter messages to show only non-empty user and assistant messages
+  const visibleMessages = messages.filter((msg) => {
+    const hasText = getMessageTextContent(msg).trim() !== "";
+    return (
+      (msg.role === "user" && hasText) || (msg.role === "assistant" && hasText)
+    );
+  });
+
+  const isStreaming = status === "streaming" || status === "submitted";
 
   return (
     <div className="flex flex-col h-screen max-w-2xl mx-auto p-4 border rounded-lg shadow-sm">
@@ -35,26 +98,35 @@ export default function NurseAgentChat() {
 
       {/* Message History Feed */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        {messages.map((msg, idx) => (
+        {visibleMessages.map((msg) => (
           <div
-            key={idx}
+            key={msg.id}
             className={`p-3 rounded-lg max-w-[80%] ${
               msg.role === "user"
                 ? "ml-auto bg-blue-600 text-white"
                 : "mr-auto bg-gray-100 text-gray-800"
             }`}
           >
-            {msg.content}
+            {getMessageTextContent(msg)}
           </div>
         ))}
-        {isStreaming && (
-          <p className="text-gray-400 text-sm italic">Agent thinking...</p>
+        {isStreaming && !activeToolName && (
+          <div>
+            <LoadingBubbles />
+            <p className="text-gray-400 text-sm italic animate-pulse">
+              Agent thinking...
+            </p>
+          </div>
+        )}
+        {error && (
+          <p className="text-red-500 text-sm italic">Error: {error.message}</p>
         )}
       </div>
 
       {/* Voice Dictation & Text Input */}
-      <div className="p-4 border-t flex gap-2 items-center">
+      <form onSubmit={onSend} className="p-4 border-t flex gap-2 items-center">
         <button
+          type="button"
           onClick={toggleRecording}
           className={`p-3 rounded-full text-white font-semibold transition-all ${
             isRecording
@@ -68,21 +140,20 @@ export default function NurseAgentChat() {
 
         <input
           type="text"
-          value={prompt}
-          onChange={(e) => setPrompt(e.target.value)}
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
           placeholder="Dictate or type command (e.g. Check PAT-8X2K9)..."
           className="flex-1 border p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-          onKeyDown={(e) => e.key === "Enter" && onSend()}
         />
 
         <button
-          onClick={onSend}
-          disabled={isStreaming || !prompt.trim()}
+          type="submit"
+          disabled={isStreaming || !input.trim()}
           className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 disabled:opacity-50"
         >
           Send
         </button>
-      </div>
+      </form>
     </div>
   );
 }

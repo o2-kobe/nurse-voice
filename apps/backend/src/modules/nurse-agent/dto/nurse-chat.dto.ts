@@ -1,6 +1,8 @@
-import { IsString } from 'class-validator';
+import { IsArray } from 'class-validator';
+import { UIMessage } from 'ai';
 
 export class NurseChatDto {
-  @IsString()
-  prompt!: string;
+  @IsArray()
+  messages!: UIMessage[];
 }
+
