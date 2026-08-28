@@ -2,17 +2,23 @@ import { Injectable } from '@nestjs/common';
 import { tool } from 'ai';
 import { PatientService } from '../patient/patient.service';
 import {
+  CreatePatientInput,
+  createPatientSchema,
   FindPatientByCodeInput,
   findPatientByCodeSchema,
 } from '../patient/schema/patient.schema';
-// import { VitalReadingService } from '../vital-reading/vital-reading.service';
+import { VitalReadingService } from '../vital-reading/vital-reading.service';
+import {
+  logVitalsSchema,
+  LogVitalsSchemaInput,
+} from '../vital-reading/schema/vitalReading.schema';
 // import { DoctorFlagService } from '../doctor-flag/doctor-flag.service';
 
 @Injectable()
 export class NurseAgentToolsService {
   constructor(
     private readonly patientService: PatientService,
-    // private readonly vitalReadingService: VitalReadingService,
+    private readonly vitalReadingService: VitalReadingService,
     // private readonly doctorFlagService: DoctorFlagService,
   ) {}
 
@@ -53,37 +59,55 @@ export class NurseAgentToolsService {
         },
       }),
 
-      // logVitalReading: tool({
-      //   description:
-      //     'Log vital signs (heart rate, blood pressure, temperature, etc.) for a specific patient.',
-      //   inputSchema: z.object({
-      //     patientCode: z.string().describe('The PAT code of the patient'),
-      //     heartRate: z.number().optional().describe('BPM'),
-      //     systolicBp: z.number().optional().describe('Systolic blood pressure'),
-      //     diastolicBp: z
-      //       .number()
-      //       .optional()
-      //       .describe('Diastolic blood pressure'),
-      //     temperature: z
-      //       .number()
-      //       .optional()
-      //       .describe('Body temperature in Celsius or Fahrenheit'),
-      //   }),
-      //   execute: async (vitalsData) => {
-      //     try {
-      //       const record =
-      //         await this.vitalReadingService.logVitalReading(vitalsData);
+      logVitalReading: tool({
+        description:
+          'Log vital signs (heart rate, blood pressure, temperature, etc.) for a specific patient.',
+        inputSchema: logVitalsSchema,
+        execute: async (vitalsData: LogVitalsSchemaInput) => {
+          try {
+            const record =
+              await this.vitalReadingService.logVitalReading(vitalsData);
 
-      //       return { success: true, record };
-      //     } catch (error) {
-      //       const errorMessage =
-      //         error instanceof Error
-      //           ? error.message
-      //           : 'An unexpected error occurred';
-      //       return { success: false, message: errorMessage };
-      //     }
-      //   },
-      // }),
+            return { success: true, record };
+          } catch (error) {
+            const errorMessage =
+              error instanceof Error
+                ? error.message
+                : 'An unexpected error occurred';
+            return { success: false, message: errorMessage };
+          }
+        },
+      }),
+
+      createPatient: tool({
+        description: 'Create a new patient document for specific patient',
+        inputSchema: createPatientSchema,
+        execute: async (patientData: CreatePatientInput) => {
+          try {
+            const newPatient =
+              await this.patientService.createPatient(patientData);
+
+            return {
+              success: true,
+              patient: {
+                id: newPatient.id,
+                patientCode: newPatient.patientCode,
+                firstName: newPatient.firstName,
+                lastName: newPatient.lastName,
+                gender: newPatient.gender,
+                ward: patientData.ward,
+                age: patientData.age,
+              },
+            };
+          } catch (error) {
+            const errorMessage =
+              error instanceof Error
+                ? error.message
+                : 'An unexpected error occurred';
+            return { success: false, message: errorMessage };
+          }
+        },
+      }),
 
       // createDoctorFlag: tool({
       //   description:

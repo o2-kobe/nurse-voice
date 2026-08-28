@@ -30,7 +30,7 @@ export class CreatePatientDto {
   @IsOptional()
   @IsString()
   @IsNotEmpty()
-  bedNumber!: string;
+  bedNumber?: string;
 
   @IsOptional()
   @Length(9)
