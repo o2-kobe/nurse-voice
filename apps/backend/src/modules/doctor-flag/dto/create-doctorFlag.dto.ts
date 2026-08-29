@@ -15,7 +15,4 @@ export class CreateDoctorFlagDto {
 
   @IsString()
   reason!: string;
-
-  @IsEnum(AlertStatus)
-  status!: AlertStatus;
 }

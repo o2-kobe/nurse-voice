@@ -12,14 +12,18 @@ import {
   logVitalsSchema,
   LogVitalsSchemaInput,
 } from '../vital-reading/schema/vitalReading.schema';
-// import { DoctorFlagService } from '../doctor-flag/doctor-flag.service';
+import { DoctorFlagService } from '../doctor-flag/doctor-flag.service';
+import {
+  createDoctorFlagInput,
+  createDoctorFlagSchema,
+} from '../doctor-flag/schema/doctor-flag.schema';
 
 @Injectable()
 export class NurseAgentToolsService {
   constructor(
     private readonly patientService: PatientService,
     private readonly vitalReadingService: VitalReadingService,
-    // private readonly doctorFlagService: DoctorFlagService,
+    private readonly doctorFlagService: DoctorFlagService,
   ) {}
 
   getTools() {
@@ -109,33 +113,35 @@ export class NurseAgentToolsService {
         },
       }),
 
-      // createDoctorFlag: tool({
-      //   description:
-      //     'Raise an alert/flag for a doctor regarding a patient status or critical issue.',
-      //   inputSchema: z.object({
-      //     patientCode: z.string().describe('The PAT code of the patient'),
-      //     reason: z
-      //       .string()
-      //       .describe('Detailed reason for flagging the doctor'),
-      //     urgency: z
-      //       .enum(['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'])
-      //       .describe('Urgency level'),
-      //   }),
-      //   execute: async (flagData) => {
-      //     try {
-      //       const flag =
-      //         await this.doctorFlagService.createDoctorFlag(flagData);
+      createDoctorFlag: tool({
+        description:
+          'Raise an alert/flag for a doctor regarding a patient status or critical issue.',
+        inputSchema: createDoctorFlagSchema,
+        execute: async (flagData: createDoctorFlagInput) => {
+          try {
+            const flag =
+              await this.doctorFlagService.createDoctorFlag(flagData);
 
-      //       return { success: true, flag };
-      //     } catch (error) {
-      //       const errorMessage =
-      //         error instanceof Error
-      //           ? error.message
-      //           : 'An unexpected error occurred';
-      //       return { success: false, message: errorMessage };
-      //     }
-      //   },
-      // }),
+            return {
+              success: true,
+              flag: {
+                flagCode: flag.flagCode,
+                patientName: `${flag.patient.lastName} ${flag.patient.firstName}`,
+                doctor: flag.doctor.name,
+                urgency: flag.urgency,
+                reason: flag.reason,
+                status: flag.status,
+              },
+            };
+          } catch (error) {
+            const errorMessage =
+              error instanceof Error
+                ? error.message
+                : 'An unexpected error occurred';
+            return { success: false, message: errorMessage };
+          }
+        },
+      }),
     };
   }
 }
