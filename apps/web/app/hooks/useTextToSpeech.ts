@@ -41,10 +41,14 @@ export function useTextToSpeech(
 
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [autoRead, setAutoRead] = useState(true);
+  const [isSupported, setIsSupported] = useState(false);
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
 
-  const isSupported =
-    typeof window !== "undefined" && "speechSynthesis" in window;
+  useEffect(() => {
+    setIsSupported(
+      typeof window !== "undefined" && "speechSynthesis" in window,
+    );
+  }, []);
 
   /** Resolve the best available voice */
   const getVoice = useCallback((): SpeechSynthesisVoice | null => {
