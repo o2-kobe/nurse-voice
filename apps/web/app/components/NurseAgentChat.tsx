@@ -2,6 +2,7 @@
 import React from "react";
 import { useNurseAgentChat } from "../hooks/useNurseAgentChat";
 import LoadingBubbles from "./LoadingBubbles";
+import TextareaAutosize from "react-textarea-autosize";
 
 export default function NurseAgentChat() {
   const {
@@ -96,8 +97,9 @@ export default function NurseAgentChat() {
           {isRecording ? "🛑" : "🎙️"}
         </button>
 
-        <input
-          type="text"
+        <TextareaAutosize
+          minRows={1}
+          maxRows={6}
           value={input}
           onChange={(e) => setInput(e.target.value)}
           placeholder="Dictate or type command (e.g. Check PAT-8X2K9)..."
