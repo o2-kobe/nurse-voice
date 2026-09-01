@@ -10,7 +10,9 @@ interface UseSpeechRecognitionOptions {
   onTranscript: (transcript: string) => void;
 }
 
-export function useSpeechRecognition({ onTranscript }: UseSpeechRecognitionOptions) {
+export function useSpeechRecognition({
+  onTranscript,
+}: UseSpeechRecognitionOptions) {
   const [isRecording, setIsRecording] = useState<boolean>(false);
   const recognitionRef = useRef<SpeechRecognitionInstance | null>(null);
 
@@ -35,6 +37,7 @@ export function useSpeechRecognition({ onTranscript }: UseSpeechRecognitionOptio
     const recognition = new SpeechRecognition();
     recognition.continuous = true;
     recognition.interimResults = true;
+    recognition.lang = "en-GH";
 
     recognition.onresult = (event: SpeechRecognitionEvent) => {
       let transcript = "";

@@ -7,6 +7,7 @@ export interface SpeechRecognitionErrorEvent extends Event {
 }
 
 export interface SpeechRecognitionInstance {
+  lang: string;
   continuous: boolean;
   interimResults: boolean;
   onresult: ((event: SpeechRecognitionEvent) => void) | null;
